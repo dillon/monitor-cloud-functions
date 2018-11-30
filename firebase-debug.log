@@ -1,0 +1,117 @@
+[debug] [2018-11-30T04:35:23.333Z] ----------------------------------------------------------------------
+[debug] [2018-11-30T04:35:23.336Z] Command:       /usr/local/Cellar/node/10.9.0/bin/node /usr/local/bin/firebase deploy
+[debug] [2018-11-30T04:35:23.336Z] CLI Version:   5.0.1
+[debug] [2018-11-30T04:35:23.336Z] Platform:      darwin
+[debug] [2018-11-30T04:35:23.336Z] Node Version:  v10.9.0
+[debug] [2018-11-30T04:35:23.352Z] Time:          Thu Nov 29 2018 23:35:23 GMT-0500 (Eastern Standard Time)
+[debug] [2018-11-30T04:35:23.352Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2018-11-30T04:35:23.377Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2018-11-30T04:35:23.378Z] > authorizing via signed-in user
+[debug] [2018-11-30T04:35:23.378Z] [iam] checking project monitor-3f707 for permissions ["cloudfunctions.functions.create","cloudfunctions.functions.delete","cloudfunctions.functions.get","cloudfunctions.functions.list","cloudfunctions.functions.update","cloudfunctions.operations.get","firebase.projects.get"]
+[debug] [2018-11-30T04:35:23.380Z] > refreshing access token with scopes: ["email","https://www.googleapis.com/auth/cloud-platform","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","openid"]
+[debug] [2018-11-30T04:35:23.380Z] >>> HTTP REQUEST POST https://www.googleapis.com/oauth2/v3/token  
+ <request body omitted>
+[debug] [2018-11-30T04:35:23.608Z] <<< HTTP RESPONSE 200
+[debug] [2018-11-30T04:35:23.640Z] >>> HTTP REQUEST POST https://cloudresourcemanager.googleapis.com/v1/projects/monitor-3f707:testIamPermissions  
+
+[debug] [2018-11-30T04:35:23.945Z] <<< HTTP RESPONSE 200
+[info] 
+[info] === Deploying to 'monitor-3f707'...
+[info] 
+[info] i  deploying functions
+[info] Running command: npm --prefix "$RESOURCE_DIR" run lint
+[info] Running command: npm --prefix "$RESOURCE_DIR" run build
+[info] ✔  functions: Finished running predeploy script.
+[debug] [2018-11-30T04:35:32.591Z] > [functions] package.json contents: {
+  "name": "functions",
+  "scripts": {
+    "lint": "tslint --project tsconfig.json",
+    "build": "tsc",
+    "serve": "npm run build && firebase serve --only functions",
+    "shell": "npm run build && firebase functions:shell",
+    "start": "npm run shell",
+    "deploy": "firebase deploy --only functions",
+    "logs": "firebase functions:log"
+  },
+  "main": "lib/index.js",
+  "dependencies": {
+    "firebase-admin": "~6.0.0",
+    "firebase-functions": "^2.0.3",
+    "request": "^2.88.0"
+  },
+  "devDependencies": {
+    "tslint": "~5.8.0",
+    "typescript": "~2.8.3"
+  },
+  "private": true
+}
+[info] i  functions: ensuring necessary APIs are enabled...
+[debug] [2018-11-30T04:35:32.592Z] >>> HTTP REQUEST GET https://servicemanagement.googleapis.com/v1/services/cloudfunctions.googleapis.com/projectSettings/monitor-3f707?view=CONSUMER_VIEW  
+ 
+[debug] [2018-11-30T04:35:32.593Z] >>> HTTP REQUEST GET https://servicemanagement.googleapis.com/v1/services/runtimeconfig.googleapis.com/projectSettings/monitor-3f707?view=CONSUMER_VIEW  
+ 
+[debug] [2018-11-30T04:35:33.421Z] <<< HTTP RESPONSE 200
+[info] ✔  functions: all necessary APIs are enabled
+[debug] [2018-11-30T04:35:33.422Z] <<< HTTP RESPONSE 200
+[debug] [2018-11-30T04:35:33.423Z] >>> HTTP REQUEST GET https://cloudresourcemanager.googleapis.com/v1/projects/monitor-3f707  
+ 
+[debug] [2018-11-30T04:35:33.663Z] <<< HTTP RESPONSE 200
+[debug] [2018-11-30T04:35:33.663Z] >>> HTTP REQUEST GET https://mobilesdk-pa.googleapis.com/v1/projects/13346713522:getServerAppConfig  
+ 
+[debug] [2018-11-30T04:35:33.929Z] <<< HTTP RESPONSE 200
+[info] i  functions: preparing functions directory for uploading...
+[debug] [2018-11-30T04:35:33.931Z] >>> HTTP REQUEST GET https://runtimeconfig.googleapis.com/v1beta1/projects/monitor-3f707/configs  
+ 
+[debug] [2018-11-30T04:35:34.266Z] <<< HTTP RESPONSE 200
+[debug] [2018-11-30T04:35:34.268Z] >>> HTTP REQUEST GET https://runtimeconfig.googleapis.com/v1beta1/projects/monitor-3f707/configs/blockcypher/variables  
+ 
+[debug] [2018-11-30T04:35:34.269Z] >>> HTTP REQUEST GET https://runtimeconfig.googleapis.com/v1beta1/projects/monitor-3f707/configs/etherscan/variables  
+ 
+[debug] [2018-11-30T04:35:34.530Z] <<< HTTP RESPONSE 200
+[debug] [2018-11-30T04:35:34.531Z] >>> HTTP REQUEST GET https://runtimeconfig.googleapis.com/v1beta1/projects/monitor-3f707/configs/etherscan/variables/key  
+ 
+[debug] [2018-11-30T04:35:34.569Z] <<< HTTP RESPONSE 200
+[debug] [2018-11-30T04:35:34.570Z] >>> HTTP REQUEST GET https://runtimeconfig.googleapis.com/v1beta1/projects/monitor-3f707/configs/blockcypher/variables/key  
+ 
+[debug] [2018-11-30T04:35:34.671Z] <<< HTTP RESPONSE 200
+[debug] [2018-11-30T04:35:34.716Z] <<< HTTP RESPONSE 200
+[info] i  functions: packaged functions (56.98 KB) for uploading
+[debug] [2018-11-30T04:35:35.302Z] >>> HTTP REQUEST POST https://cloudfunctions.googleapis.com/v1/projects/monitor-3f707/locations/us-central1/functions:generateUploadUrl  
+ 
+[debug] [2018-11-30T04:35:35.956Z] <<< HTTP RESPONSE 200
+[debug] [2018-11-30T04:35:35.956Z] >>> HTTP REQUEST PUT https://storage.googleapis.com/gcf-upload-us-central1-f2cefecd-58f8-4cf8-a833-3af090d10262/e96ca937-b0be-4944-bfb3-19a5bd63aee5.zip?GoogleAccessId=service-13346713522@gcf-admin-robot.iam.gserviceaccount.com&Expires=1543554335&Signature=LgZ0cFb38c7s5wrCfDpWXXp77YaJjLaI26DOv6pOho60f24InfutrdYG6tIcXMTM40Fm0kcafe1QDM8jQLDDQY%2FzzeZ7SSs%2BXXcJ4lbC%2FPwjw5ZF93OK3%2Fa9LBSIAdzeMMyEegdJfz1LkBJNnQjPBYaud0bgz6E6%2B8yTCDD5BT4c7OJCyxFL3WKHoi4tTuMzCwtg6z%2FQh9mPwvRaMHliAj0T06b%2F%2Bs65CT2BHKaT6QyWEiD%2BMFKDHD%2BbZzcPbH8XIGPowPSwhiVTAeONos4U8kvicxDyyYBf%2F1tlhHKdp87663ZR%2B1%2F9TsqCXugVrcm6uLWnQQUoEBxdqY33Y8UsNQ%3D%3D  
+
+[debug] [2018-11-30T04:35:36.412Z] <<< HTTP RESPONSE 200
+[info] ✔  functions: functions folder uploaded successfully
+[debug] [2018-11-30T04:35:36.414Z] >>> HTTP REQUEST GET https://cloudfunctions.googleapis.com/v1/projects/monitor-3f707/locations/-/functions  
+ 
+[debug] [2018-11-30T04:35:37.128Z] <<< HTTP RESPONSE 200
+[info] i  functions: updating Node.js 6 function newUser(us-central1)...
+[debug] [2018-11-30T04:35:37.132Z] Trigger is:  {"eventTrigger":{"resource":"projects/monitor-3f707","eventType":"providers/firebase.auth/eventTypes/user.create","service":"firebaseauth.googleapis.com"}}
+[info] i  functions: updating Node.js 6 function newWallet(us-central1)...
+[debug] [2018-11-30T04:35:37.132Z] Trigger is:  {"eventTrigger":{"resource":"projects/_/instances/monitor-3f707/refs/users/{uid}/wallets/{walletId}","eventType":"providers/google.firebase.database/eventTypes/ref.create","service":"firebaseio.com"}}
+[debug] [2018-11-30T04:35:37.135Z] >>> HTTP REQUEST PATCH https://cloudfunctions.googleapis.com/v1/projects/monitor-3f707/locations/us-central1/functions/newUser {"updateMask":"sourceUploadUrl,name,labels,eventTrigger.resource,eventTrigger.eventType,eventTrigger.service"} 
+
+[debug] [2018-11-30T04:35:37.136Z] >>> HTTP REQUEST PATCH https://cloudfunctions.googleapis.com/v1/projects/monitor-3f707/locations/us-central1/functions/newWallet {"updateMask":"sourceUploadUrl,name,labels,eventTrigger.resource,eventTrigger.eventType,eventTrigger.service"} 
+
+[debug] [2018-11-30T04:35:37.901Z] <<< HTTP RESPONSE 200
+[debug] [2018-11-30T04:35:37.902Z] <<< HTTP RESPONSE 200
+[debug] [2018-11-30T04:35:37.904Z] >>> HTTP REQUEST GET https://cloudfunctions.googleapis.com/v1/operations/bW9uaXRvci0zZjcwNy91cy1jZW50cmFsMS9uZXdVc2VyL0R5djZuOU1kbUhF  
+ 
+[debug] [2018-11-30T04:35:37.904Z] >>> HTTP REQUEST GET https://cloudfunctions.googleapis.com/v1/operations/bW9uaXRvci0zZjcwNy91cy1jZW50cmFsMS9uZXdXYWxsZXQvaEVqNlB3TjJlT1U  
+ 
+[debug] [2018-11-30T04:35:38.310Z] <<< HTTP RESPONSE 200
+[debug] [2018-11-30T04:35:38.311Z] <<< HTTP RESPONSE 200
+[debug] [2018-11-30T04:35:40.313Z] >>> HTTP REQUEST GET https://cloudfunctions.googleapis.com/v1/operations/bW9uaXRvci0zZjcwNy91cy1jZW50cmFsMS9uZXdXYWxsZXQvaEVqNlB3TjJlT1U  
+ 
+[debug] [2018-11-30T04:35:40.314Z] >>> HTTP REQUEST GET https://cloudfunctions.googleapis.com/v1/operations/bW9uaXRvci0zZjcwNy91cy1jZW50cmFsMS9uZXdVc2VyL0R5djZuOU1kbUhF  
+ 
+[debug] [2018-11-30T04:35:40.768Z] <<< HTTP RESPONSE 200
+[debug] [2018-11-30T04:35:40.768Z] <<< HTTP RESPONSE 200
+[debug] [2018-11-30T04:35:42.768Z] >>> HTTP REQUEST GET https://cloudfunctions.googleapis.com/v1/operations/bW9uaXRvci0zZjcwNy91cy1jZW50cmFsMS9uZXdVc2VyL0R5djZuOU1kbUhF  
+ 
+[debug] [2018-11-30T04:35:42.770Z] >>> HTTP REQUEST GET https://cloudfunctions.googleapis.com/v1/operations/bW9uaXRvci0zZjcwNy91cy1jZW50cmFsMS9uZXdXYWxsZXQvaEVqNlB3TjJlT1U  
+ 
+[debug] [2018-11-30T04:35:43.128Z] <<< HTTP RESPONSE 200
+[debug] [2018-11-30T04:35:43.163Z] <<< HTTP RESPONSE 200

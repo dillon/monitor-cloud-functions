@@ -20,7 +20,9 @@ const INCOMING = 'incoming';
 const OTHER = 'other';
 class Transaction {
     constructor(txHash, // yes to leading 0x
-    dateString, timeStamp, type, value, fromAddress, toAddress, gasUsed, gasPrice, blockNumber, blockHash) {
+    dateString, timeStamp, type, value, fromAddress, toAddress, gasUsed, gasPrice, blockNumber, blockHash, walletAddress, walletNickname
+    // TODO: confirmations: number 
+    ) {
         this.txHash = txHash;
         this.dateString = dateString;
         this.timeStamp = timeStamp;
@@ -32,12 +34,14 @@ class Transaction {
         this.gasPrice = gasPrice;
         this.blockNumber = blockNumber;
         this.blockHash = blockHash;
+        this.walletAddress = walletAddress;
+        this.walletNickname = walletNickname;
     }
     ;
 }
 class TransactionMaker {
     static create(event) {
-        return new Transaction(event.txHash, event.dateString, event.timeStamp, event.type, event.value, event.fromAddress, event.toAddress, event.gasUsed, event.gasPrice, event.blockNumber, event.blockHash);
+        return new Transaction(event.txHash, event.dateString, event.timeStamp, event.type, event.value, event.fromAddress, event.toAddress, event.gasUsed, event.gasPrice, event.blockNumber, event.blockHash, event.walletAddress, event.walletNickname);
     }
 }
 admin.initializeApp(functions.config().firebase);
@@ -60,6 +64,7 @@ exports.newWallet = functions.database.ref('/users/{uid}/wallets/{walletId}')
         const promises = [];
         const wallet = snap.val();
         const walletAddress = wallet.address;
+        const walletNickname = wallet.nickname;
         // etherscan for past transactions
         const optionsForEtherscan = {
             url: `http://api.etherscan.io/api?module=account&action=txlist&address=${walletAddress}&startblock=0&endblock=99999999&sort=asc&apikey=${ETHERSCAN_API_KEY}`,
@@ -162,7 +167,9 @@ exports.newWallet = functions.database.ref('/users/{uid}/wallets/{walletId}')
                         gasUsed: parseInt(x.gas),
                         gasPrice: parseInt(x.gasPrice),
                         timeStamp: parseInt(x.timeStamp),
-                        dateString
+                        dateString,
+                        walletAddress,
+                        walletNickname
                     });
                     txs.push(transaction);
                 });
@@ -187,7 +194,9 @@ exports.newWallet = functions.database.ref('/users/{uid}/wallets/{walletId}')
                         gasUsed: x.gas_used,
                         gasPrice: x.gas_price,
                         timeStamp: x.confirmed,
-                        dateString: x.confirmed
+                        dateString: x.confirmed,
+                        walletAddress,
+                        walletNickname
                     });
                     txs.push(transaction);
                 });

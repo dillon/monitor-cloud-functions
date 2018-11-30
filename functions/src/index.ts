@@ -24,6 +24,8 @@ class Transaction {
     public gasPrice: number,
     public blockNumber: number,
     public blockHash: string,
+    public walletAddress: string,
+    public walletNickname: string
     // TODO: confirmations: number 
   ) { };
 }
@@ -32,7 +34,8 @@ class TransactionMaker {
   static create(event: Transaction) {
     return new Transaction(
       event.txHash, event.dateString, event.timeStamp, event.type, event.value, event.fromAddress,
-      event.toAddress, event.gasUsed, event.gasPrice, event.blockNumber, event.blockHash
+      event.toAddress, event.gasUsed, event.gasPrice, event.blockNumber, event.blockHash,
+      event.walletAddress, event.walletNickname
     );
   }
 }
@@ -63,7 +66,8 @@ export const newWallet = functions.database.ref('/users/{uid}/wallets/{walletId}
   .onCreate(async function (snap, context) {
     const promises = []
     const wallet = snap.val();
-    const walletAddress: string = wallet.address
+    const walletAddress: string = wallet.address;
+    const walletNickname: string = wallet.nickname;
 
     // etherscan for past transactions
     const optionsForEtherscan = {
@@ -173,7 +177,9 @@ export const newWallet = functions.database.ref('/users/{uid}/wallets/{walletId}
             gasUsed: parseInt(x.gas),
             gasPrice: parseInt(x.gasPrice),
             timeStamp: parseInt(x.timeStamp),
-            dateString
+            dateString,
+            walletAddress,
+            walletNickname
           });
           txs.push(transaction);
         })
@@ -194,7 +200,9 @@ export const newWallet = functions.database.ref('/users/{uid}/wallets/{walletId}
             gasUsed: x.gas_used,
             gasPrice: x.gas_price,
             timeStamp: x.confirmed,
-            dateString: x.confirmed
+            dateString: x.confirmed,
+            walletAddress,
+            walletNickname
           });
           txs.push(transaction);
         })
