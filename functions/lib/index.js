@@ -163,7 +163,7 @@ exports.newWallet = functions.database.ref('/users/{uid}/wallets/{walletId}')
                         blockHash: x.blockHash,
                         fromAddress: x.from,
                         toAddress: x.to,
-                        value: parseInt(x.value),
+                        value: parseInt(x.value) / (1000000000000000000),
                         gasUsed: parseInt(x.gas),
                         gasPrice: parseInt(x.gasPrice),
                         timeStamp: parseInt(x.timeStamp),
