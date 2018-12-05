@@ -49,7 +49,6 @@ exports.newUser = functions.auth.user().onCreate((user) => {
     const userObject = {
         email: user.email,
         createdOn: new Date(),
-        theme: "light"
     };
     return admin.database().ref('users/' + user.uid).set(userObject);
 });
