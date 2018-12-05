@@ -53,6 +53,10 @@ exports.newUser = functions.auth.user().onCreate((user) => {
     };
     return admin.database().ref('users/' + user.uid).set(userObject);
 });
+exports.deleteUser = functions.auth.user().onDelete((user) => {
+    return admin.database().ref('users/' + user.uid).remove()
+        .catch((err) => console.log(err));
+});
 // Send Welcome Email
 // export const sendWelcomeEmail = functions.auth.user().onCreate((user) => {
 //   // ... https://github.com/firebase/functions-samples/blob/Node-8/quickstarts/email-users/functions/index.js
@@ -61,17 +65,30 @@ exports.newWallet = functions.database.ref('/users/{uid}/wallets/{walletId}')
     // Grab array of old transactions
     .onCreate(function (snap, context) {
     return __awaiter(this, void 0, void 0, function* () {
-        const promises = [];
         const wallet = snap.val();
         const walletAddress = wallet.address;
         const walletNickname = wallet.nickname;
+        // get balance
+        const optionsForEtherscanBalance = {
+            url: `https://api.etherscan.io/api?module=account&action=balance&address=${walletAddress}&tag=latest&apikey=${ETHERSCAN_API_KEY}`,
+            json: true
+        };
+        const getBalance = new Promise(function (resolve, reject) {
+            request(optionsForEtherscanBalance, function (err, resp) {
+                if (err) {
+                    console.log(err);
+                    reject({ err: err });
+                }
+                resolve(parseInt(resp.body.result) / (1000000000000000000));
+            });
+        });
         // etherscan for past transactions
-        const optionsForEtherscan = {
+        const optionsForEtherscanTx = {
             url: `http://api.etherscan.io/api?module=account&action=txlist&address=${walletAddress}&startblock=0&endblock=99999999&sort=asc&apikey=${ETHERSCAN_API_KEY}`,
             json: true
         };
         const getTransactions = new Promise(function (resolve, reject) {
-            request(optionsForEtherscan, function (err, resp) {
+            request(optionsForEtherscanTx, function (err, resp) {
                 if (err) {
                     console.log(err);
                     reject({ err: err });
@@ -114,9 +131,16 @@ exports.newWallet = functions.database.ref('/users/{uid}/wallets/{walletId}')
             myRequest.write(blockcypherData);
             myRequest.end();
         });
+        const balance = yield getBalance;
         const transactions = yield getTransactions; // wait for API to resolve
         const webhookId = yield getWebhookId;
         return Promise.all([
+            // add balance to wallet
+            snap.ref.child('balance')
+                .set(balance)
+                .then(() => {
+                console.log('balance updated');
+            }),
             // add webhook id to wallet
             snap.ref.child('webhookId')
                 .set(webhookId)
@@ -145,7 +169,7 @@ exports.newWallet = functions.database.ref('/users/{uid}/wallets/{walletId}')
             // standardize txs from etherscan or blockcypher
             const txs = [];
             const etherscan = sourceName === 'etherscan';
-            if (etherscan) {
+            if (etherscan && data.length !== 0) {
                 console.log(data);
                 data.map((x) => {
                     let type;

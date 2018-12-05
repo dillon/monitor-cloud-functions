@@ -53,6 +53,12 @@ export const newUser = functions.auth.user().onCreate((user) => {
   return admin.database().ref('users/' + user.uid).set(userObject);
 });
 
+export const deleteUser = functions.auth.user().onDelete((user) => {
+
+  return admin.database().ref('users/' + user.uid).remove()
+  .catch((err) => console.log(err))
+})
+
 
 // Send Welcome Email
 // export const sendWelcomeEmail = functions.auth.user().onCreate((user) => {
@@ -64,18 +70,33 @@ export const newUser = functions.auth.user().onCreate((user) => {
 export const newWallet = functions.database.ref('/users/{uid}/wallets/{walletId}')
   // Grab array of old transactions
   .onCreate(async function (snap, context) {
-    const promises = []
     const wallet = snap.val();
     const walletAddress: string = wallet.address;
     const walletNickname: string = wallet.nickname;
 
+
+    // get balance
+    const optionsForEtherscanBalance = {
+      url: `https://api.etherscan.io/api?module=account&action=balance&address=${walletAddress}&tag=latest&apikey=${ETHERSCAN_API_KEY}`,
+      json: true
+    }
+    const getBalance = new Promise(function (resolve, reject) {
+      request(optionsForEtherscanBalance, function (err, resp) {
+        if (err) {
+          console.log(err);
+          reject({ err: err });
+        }
+        resolve(parseInt(resp.body.result) / (1000000000000000000))
+      })
+    })
+
     // etherscan for past transactions
-    const optionsForEtherscan = {
+    const optionsForEtherscanTx = {
       url: `http://api.etherscan.io/api?module=account&action=txlist&address=${walletAddress}&startblock=0&endblock=99999999&sort=asc&apikey=${ETHERSCAN_API_KEY}`,
       json: true
     };
     const getTransactions = new Promise(function (resolve, reject) {
-      request(optionsForEtherscan, function (err, resp) {
+      request(optionsForEtherscanTx, function (err, resp) {
         if (err) {
           console.log(err);
           reject({ err: err });
@@ -124,10 +145,17 @@ export const newWallet = functions.database.ref('/users/{uid}/wallets/{walletId}
       myRequest.end();
     });
 
+    const balance = await getBalance
     const transactions = await getTransactions // wait for API to resolve
     const webhookId = await getWebhookId
 
     return Promise.all([
+      // add balance to wallet
+      snap.ref.child('balance')
+        .set(balance)
+        .then(() => {
+          console.log('balance updated')
+        }),
       // add webhook id to wallet
       snap.ref.child('webhookId')
         .set(webhookId)
@@ -158,7 +186,7 @@ export const newWallet = functions.database.ref('/users/{uid}/wallets/{walletId}
       // standardize txs from etherscan or blockcypher
       const txs = [];
       const etherscan: boolean = sourceName === 'etherscan';
-      if (etherscan) {
+      if (etherscan && data.length !== 0) {
         console.log(data);
         data.map((x) => {
           let type: string;
@@ -173,7 +201,7 @@ export const newWallet = functions.database.ref('/users/{uid}/wallets/{walletId}
             blockHash: x.blockHash,
             fromAddress: x.from,
             toAddress: x.to,
-            value: parseInt(x.value)/(1000000000000000000),
+            value: parseInt(x.value) / (1000000000000000000),
             gasUsed: parseInt(x.gas),
             gasPrice: parseInt(x.gasPrice),
             timeStamp: parseInt(x.timeStamp),
