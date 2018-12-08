@@ -6,7 +6,7 @@ const http = require('http');
 
 const BLOCKCYPHER_API_KEY = functions.config().blockcypher.key
 const ETHERSCAN_API_KEY = functions.config().etherscan.key
-const webhookCallbackUrl = 'https://webhook.site/59b866ec-c133-43c7-8bfa-9e78722da7ff'
+const webhookCallbackUrl = 'https://webhook.site/8935ec96-b32b-425a-b8d8-2c0db133966d'
 const OUTGOING = 'outgoing'
 const INCOMING = 'incoming'
 const OTHER = 'other'
@@ -43,8 +43,9 @@ class TransactionMaker {
 
 admin.initializeApp(functions.config().firebase);
 
-export const newUser = functions.auth.user().onCreate((user) => {
 
+// NEW USER
+export const newUser = functions.auth.user().onCreate((user) => {
   const userObject = {
     email: user.email,
     createdOn: new Date(),
@@ -52,11 +53,104 @@ export const newUser = functions.auth.user().onCreate((user) => {
   return admin.database().ref('users/' + user.uid).set(userObject);
 });
 
-export const deleteUser = functions.auth.user().onDelete((user) => {
 
-  return admin.database().ref('users/' + user.uid).remove()
-  .catch((err) => console.log(err))
+// DELETE USER
+export const deleteUser = functions.auth.user().onDelete((user) => {
+  let promisesArray = [];
+
+  admin.database().ref('users/' + user.uid + '/wallets')
+  .once('value', snapshot => {
+      const wallets = snapshot.val()
+      console.log(wallets)
+      const walletsArray = Object.keys(wallets).map(i => wallets[i]);
+      walletsArray.map(element => {
+        promisesArray.push(deleteWebhook(element.webhookId))
+      });
+      promisesArray.push(
+        admin.database().ref('users/' + user.uid).remove()
+          .catch((err) => console.log(err))
+      )
+    })
+
+  function deleteWebhook(webhookId) {
+    const blockcypherData = JSON.stringify({
+      'token': BLOCKCYPHER_API_KEY
+    })
+    const webhookOptions = {
+      host: 'api.blockcypher.com',
+      port: '80',
+      path: `/v1/eth/main/hooks/${webhookId}?token=${BLOCKCYPHER_API_KEY}`,
+      method: 'DELETE', // DELETE method
+      HEADERS: {
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(blockcypherData)
+      }
+    };
+    const deleteWebhookId = new Promise(function (resolve, reject) {
+      console.log('step 2: in promise');
+      const myRequest = http.request(webhookOptions, function (response) {
+        console.log('step 3: in request');
+        // response.setEncoding('utf8');
+        response.on('data', function (chunk) {
+          console.log('step 4: in response');
+          const parsedChunk = JSON.parse(chunk)
+          console.log('Webhook Deleted 1');
+          resolve(parsedChunk.statusCode)
+        });
+        response.on('end', function (data, err) {
+          resolve(data);
+        });
+      })
+      myRequest.write(blockcypherData)
+      myRequest.end();
+    });
+    return deleteWebhookId;
+  }
+  return Promise.all(promisesArray);
 })
+
+// DELETE WALLET WEBHOOK
+export const deleteWallet = functions.database.ref('/users/{uid}/wallets/{walletId}')
+  .onDelete(async function (snap, context) {
+    // when wallet is removed from Database
+    console.log('step 1, loaded api')
+    const wallet = snap.val();
+    const webhookId: string = wallet.webhookId;
+    const blockcypherData = JSON.stringify({
+      'token': BLOCKCYPHER_API_KEY
+    })
+    const webhookOptions = {
+      host: 'api.blockcypher.com',
+      port: '80',
+      path: `/v1/eth/main/hooks/${webhookId}?token=${BLOCKCYPHER_API_KEY}`,
+      method: 'DELETE', // DELETE method
+      HEADERS: {
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(blockcypherData)
+      }
+    };
+
+
+    const deleteWebhookId = new Promise(function (resolve, reject) {
+      console.log('step 2: in promise');
+      const myRequest = http.request(webhookOptions, function (response) {
+        console.log('step 3: in request');
+        // response.setEncoding('utf8');
+        response.on('data', function (chunk) {
+          console.log('step 4: in response');
+          const parsedChunk = JSON.parse(chunk)
+          console.log('Webhook Deleted 1');
+          resolve(parsedChunk.statusCode)
+        });
+        response.on('end', function (data, err) {
+          resolve(data);
+        });
+      })
+      myRequest.write(blockcypherData)
+      myRequest.end();
+    });
+    return deleteWebhookId;
+  });
 
 
 // Send Welcome Email
@@ -65,7 +159,7 @@ export const deleteUser = functions.auth.user().onDelete((user) => {
 // });
 
 
-
+// NEW WALLET
 export const newWallet = functions.database.ref('/users/{uid}/wallets/{walletId}')
   // Grab array of old transactions
   .onCreate(async function (snap, context) {
@@ -104,15 +198,12 @@ export const newWallet = functions.database.ref('/users/{uid}/wallets/{walletId}
       });
     });
 
-    // blockcypher for future transactions
-    function addWebhookIdToDatabase(id: string) {
-      console.log('id:', id);
-    }
+    // curl -sd '{"event": "confirmed-tx", "address": "14ddda446688b73161aa1382f4e4343353af6fc8", "url": "https://webhook.site/ccb360a4-7409-4e82-8820-f61f3b0ac3cd"}' https://api.blockcypher.com/v1/eth/main/hooks?token=117cfc5e59ea48b9a0fadb9a24ba4702
 
     const blockcypherData = JSON.stringify({
       url: webhookCallbackUrl,
       'event': 'confirmed-tx',
-      'address': walletAddress,
+      'address': (walletAddress[0] === '0' && walletAddress[1] === 'x') ? walletAddress.substr(2) : walletAddress,
       'token': BLOCKCYPHER_API_KEY
     })
 
@@ -173,11 +264,6 @@ export const newWallet = functions.database.ref('/users/{uid}/wallets/{walletId}
             })
         })
     ]);
-
-    // function deleteWallet(walletAddressToDelete: string): void {
-    //   // TODO
-    //   console.log('should Delete Wallet', walletAddressToDelete)
-    // }
 
     function standardizeTransactions(sourceName: string, data) {
       // STEP THREE: Standardize All Transaction Data
