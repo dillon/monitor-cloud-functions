@@ -12,9 +12,11 @@ const functions = require("firebase-functions");
 const admin = require('firebase-admin');
 const request = require('request');
 const http = require('http');
+const moment = require('moment');
 const BLOCKCYPHER_API_KEY = functions.config().blockcypher.key;
 const ETHERSCAN_API_KEY = functions.config().etherscan.key;
-const webhookCallbackUrl = 'https://webhook.site/8935ec96-b32b-425a-b8d8-2c0db133966d';
+const SECRET = functions.config().my.secret;
+const webhookCallbackUrl = `https://us-central1-monitor-3f707.cloudfunctions.net/webhookEndpoint?secret=${SECRET}`;
 const OUTGOING = 'outgoing';
 const INCOMING = 'incoming';
 const OTHER = 'other';
@@ -51,7 +53,7 @@ exports.newUser = functions.auth.user().onCreate((user) => {
         email: user.email,
         createdOn: new Date(),
     };
-    return admin.database().ref('users/' + user.uid).set(userObject);
+    return admin.database().ref('users/' + user.uid).update(userObject);
 });
 // DELETE USER
 exports.deleteUser = functions.auth.user().onDelete((user) => {
@@ -59,7 +61,7 @@ exports.deleteUser = functions.auth.user().onDelete((user) => {
     admin.database().ref('users/' + user.uid + '/wallets')
         .once('value', snapshot => {
         const wallets = snapshot.val();
-        console.log(wallets);
+        // console.log(wallets)
         const walletsArray = Object.keys(wallets).map(i => wallets[i]);
         walletsArray.map(element => {
             promisesArray.push(deleteWebhook(element.webhookId));
@@ -103,60 +105,58 @@ exports.deleteUser = functions.auth.user().onDelete((user) => {
     }
     return Promise.all(promisesArray);
 });
-// DELETE WALLET WEBHOOK
-exports.deleteWallet = functions.database.ref('/users/{uid}/wallets/{walletId}')
-    .onDelete(function (snap, context) {
-    return __awaiter(this, void 0, void 0, function* () {
-        // when wallet is removed from Database
-        console.log('step 1, loaded api');
-        const wallet = snap.val();
-        const webhookId = wallet.webhookId;
-        const blockcypherData = JSON.stringify({
-            'token': BLOCKCYPHER_API_KEY
-        });
-        const webhookOptions = {
-            host: 'api.blockcypher.com',
-            port: '80',
-            path: `/v1/eth/main/hooks/${webhookId}?token=${BLOCKCYPHER_API_KEY}`,
-            method: 'DELETE',
-            HEADERS: {
-                'Content-Type': 'application/json',
-                'Content-Length': Buffer.byteLength(blockcypherData)
-            }
-        };
-        const deleteWebhookId = new Promise(function (resolve, reject) {
-            console.log('step 2: in promise');
-            const myRequest = http.request(webhookOptions, function (response) {
-                console.log('step 3: in request');
-                // response.setEncoding('utf8');
-                response.on('data', function (chunk) {
-                    console.log('step 4: in response');
-                    const parsedChunk = JSON.parse(chunk);
-                    console.log('Webhook Deleted 1');
-                    resolve(parsedChunk.statusCode);
-                });
-                response.on('end', function (data, err) {
-                    resolve(data);
-                });
-            });
-            myRequest.write(blockcypherData);
-            myRequest.end();
-        });
-        return deleteWebhookId;
-    });
-});
+// // DELETE WALLET WEBHOOK
+// exports.deleteWallet = functions.database.ref('/users/{uid}/wallets/{walletId}').onDelete(async function (snap, context) {
+//   // when wallet is removed from Database
+//   console.log('step 1, loaded api')
+//   const wallet = snap.val();
+//   const webhookId = wallet.webhookId;
+//   const blockcypherData = JSON.stringify({
+//     'token': BLOCKCYPHER_API_KEY
+//   })
+//   const webhookOptions = {
+//     host: 'api.blockcypher.com',
+//     port: '80',
+//     path: `/v1/eth/main/hooks/${webhookId}?token=${BLOCKCYPHER_API_KEY}`,
+//     method: 'DELETE', // DELETE method
+//     HEADERS: {
+//       'Content-Type': 'application/json',
+//       'Content-Length': Buffer.byteLength(blockcypherData)
+//     }
+//   };
+//   const deleteWebhookId = new Promise(function (resolve, reject) {
+//     console.log('step 2: in promise');
+//     const myRequest = http.request(webhookOptions, function (response) {
+//       console.log('step 3: in request');
+//       // response.setEncoding('utf8');
+//       response.on('data', function (chunk) {
+//         console.log('step 4: in response');
+//         const parsedChunk = JSON.parse(chunk)
+//         console.log('Webhook Deleted 1');
+//         resolve(parsedChunk.statusCode)
+//       });
+//       response.on('end', function (data, err) {
+//         console.log('webhook deleted 2');
+//         resolve();
+//       });
+//     })
+//     myRequest.write(blockcypherData)
+//     myRequest.end();
+//   });
+//   return deleteWebhookId
+// });
 // Send Welcome Email
-// export const sendWelcomeEmail = functions.auth.user().onCreate((user) => {
+// exports.sendWelcomeEmail = functions.auth.user().onCreate((user) => {
 //   // ... https://github.com/firebase/functions-samples/blob/Node-8/quickstarts/email-users/functions/index.js
 // });
 // NEW WALLET
-exports.newWallet = functions.database.ref('/users/{uid}/wallets/{walletId}')
-    // Grab array of old transactions
-    .onCreate(function (snap, context) {
+exports.newWallet = functions.database.ref('/users/{uid}/wallets/{walletId}').onCreate(function (snap, context) {
     return __awaiter(this, void 0, void 0, function* () {
         const wallet = snap.val();
+        const walletId = context.params.walletId;
         const walletAddress = wallet.address;
         const walletNickname = wallet.nickname;
+        const uid = context.params.uid;
         // get balance
         const optionsForEtherscanBalance = {
             url: `https://api.etherscan.io/api?module=account&action=balance&address=${walletAddress}&tag=latest&apikey=${ETHERSCAN_API_KEY}`,
@@ -187,7 +187,7 @@ exports.newWallet = functions.database.ref('/users/{uid}/wallets/{walletId}')
         });
         // curl -sd '{"event": "confirmed-tx", "address": "14ddda446688b73161aa1382f4e4343353af6fc8", "url": "https://webhook.site/ccb360a4-7409-4e82-8820-f61f3b0ac3cd"}' https://api.blockcypher.com/v1/eth/main/hooks?token=117cfc5e59ea48b9a0fadb9a24ba4702
         const blockcypherData = JSON.stringify({
-            url: webhookCallbackUrl,
+            url: webhookCallbackUrl + `&walletAddress=${walletAddress}&walletId=${walletId}&walletNickname=${walletNickname}&uid=${uid}`,
             'event': 'confirmed-tx',
             'address': (walletAddress[0] === '0' && walletAddress[1] === 'x') ? walletAddress.substr(2) : walletAddress,
             'token': BLOCKCYPHER_API_KEY
@@ -250,8 +250,7 @@ exports.newWallet = functions.database.ref('/users/{uid}/wallets/{walletId}')
             console.log('standardize txs');
             // standardize txs from etherscan or blockcypher
             const txs = [];
-            const etherscan = sourceName === 'etherscan';
-            if (etherscan && data.length !== 0) {
+            if (data.length !== 0) {
                 console.log(data);
                 data.map((x) => {
                     let type;
@@ -280,33 +279,6 @@ exports.newWallet = functions.database.ref('/users/{uid}/wallets/{walletId}')
                     txs.push(transaction);
                 });
             }
-            else {
-                data.map((x) => {
-                    let type;
-                    if ('0x' + x.addresses[0] === walletAddress)
-                        type = OUTGOING;
-                    else if (x.addresses[1] === walletAddress)
-                        type = INCOMING;
-                    else
-                        type = OTHER;
-                    const transaction = TransactionMaker.create({
-                        txHash: '0x' + x.hash,
-                        type,
-                        blockNumber: x.block_height,
-                        blockHash: '0x' + x.block_hash,
-                        fromAddress: '0x' + x.addresses[0],
-                        toAddress: '0x' + x.addresses[1],
-                        value: x.total,
-                        gasUsed: x.gas_used,
-                        gasPrice: x.gas_price,
-                        timeStamp: x.confirmed,
-                        dateString: x.confirmed,
-                        walletAddress,
-                        walletNickname
-                    });
-                    txs.push(transaction);
-                });
-            }
             if (!txs)
                 return [];
             else
@@ -315,7 +287,7 @@ exports.newWallet = functions.database.ref('/users/{uid}/wallets/{walletId}')
         // working glitch server: https://glitch.com/edit/#!/monitor-etherscan-starter?path=server.js:28:23
         // writing firebase functions in typescript: https://firebase.google.com/docs/functions/typescript
         // FOR https API:
-        // export const helloWorld = functions.https.onRequest((request, response) => {
+        // exports.helloWorld = functions.https.onRequest((request, response) => {
         //     response.send('Hello from Firebase Functions');
         // });
         // function createWebhook(): void {
@@ -328,5 +300,68 @@ exports.newWallet = functions.database.ref('/users/{uid}/wallets/{walletId}')
         // subscribing to a topic: https://firebase.google.com/docs/cloud-messaging/android/topic-messaging#subscribe_the_client_app_to_a_topic
         // push notifications: https://medium.com/yale-sandbox/react-native-push-notifications-with-firebase-cloud-functions-74b832d45386
     });
+});
+// WEBHOOK HTTPS ENDPOINT
+exports.webhookEndpoint = functions.https.onRequest((req, res) => {
+    // Grab the text parameter.
+    const secret = req.query.secret;
+    const uid = req.query.uid;
+    const walletAddress = req.query.walletAddress;
+    const walletNickname = req.query.walletNickname;
+    const walletId = req.query.walletId;
+    // const transaction = req.body
+    if (secret === SECRET) {
+        console.log(req.body);
+        const x = req.body;
+        let type;
+        if ('0x' + x.addresses[0] === walletAddress)
+            type = OUTGOING;
+        else if ('0x' + x.addresses[1] === walletAddress)
+            type = INCOMING;
+        else
+            type = OTHER;
+        const transaction = TransactionMaker.create({
+            txHash: '0x' + x.hash,
+            type,
+            blockNumber: x.block_height,
+            blockHash: '0x' + x.block_hash,
+            fromAddress: '0x' + x.addresses[0],
+            toAddress: '0x' + x.addresses[1],
+            value: x.total,
+            gasUsed: x.gas_used,
+            gasPrice: x.gas_price,
+            timeStamp: moment(x.confirmed).unix(),
+            dateString: x.confirmed,
+            walletAddress,
+            walletNickname
+        });
+        //  res.send('hi');
+        // Push the new message into the Realtime Database using the Firebase Admin SDK.
+        // return admin.database().ref(`/users/${uid}/wallets/${walletId}/transactions`)
+        // return admin.database().ref(`users/${uid}/wallets/`)
+        if (admin) {
+            return admin.database().ref(`users/${uid}/wallets/${walletId}`)
+                .child('transactions')
+                .push().set(transaction)
+                .then((snapshot) => {
+                // Redirect with 303 SEE OTHER to the URL of the pushed object in the Firebase console.
+                console.log('success');
+                res.redirect(303, 'done');
+                return;
+            })
+                .catch(err => {
+                console.log(err.message || 'error caught 1');
+                res.send(err.message);
+                return;
+            });
+        }
+        else {
+            res.redirect(303, 'done 2');
+            return;
+        }
+    }
+    else {
+        return res.send('Denied');
+    }
 });
 //# sourceMappingURL=index.js.map
