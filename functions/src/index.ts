@@ -294,8 +294,8 @@ exports.newWallet = functions.database.ref('/users/{uid}/wallets/{walletId}').on
       data.map((x) => {
         let type: string;
         const dateString = new Date(x.timeStamp * 1000).toUTCString()
-        if (x.from === walletAddress) type = OUTGOING
-        else if (x.to === walletAddress) type = INCOMING
+        if (x.from === (walletAddress[0] === '0' && walletAddress[1] === 'x') ? walletAddress.substr(2) : walletAddress) type = OUTGOING
+        else if (x.to === (walletAddress[0] === '0' && walletAddress[1] === 'x') ? walletAddress.substr(2) : walletAddress) type = INCOMING
         else type = OTHER
         const transaction = TransactionMaker.create({
           txHash: x.hash,
@@ -401,6 +401,7 @@ exports.webhookEndpoint = functions.https.onRequest((req, res) => {
                           title: `${transaction.type ? capitalizeFirst(transaction.type) : 'New'} transaction ${walletNickname ? 'for ' + walletNickname : ''}`,
                           body: `${transaction.value} ETH: ${transaction.txHash ? shortenHash(transaction.txHash) : ''}`,
                           sound: 'default',
+                          // payload: transaction
                         }
                       }
                       return admin.messaging().sendToDevice(pushToken, payload).then(() => {

@@ -265,9 +265,9 @@ exports.newWallet = functions.database.ref('/users/{uid}/wallets/{walletId}').on
                 data.map((x) => {
                     let type;
                     const dateString = new Date(x.timeStamp * 1000).toUTCString();
-                    if (x.from === walletAddress)
+                    if (x.from === (walletAddress[0] === '0' && walletAddress[1] === 'x') ? walletAddress.substr(2) : walletAddress)
                         type = OUTGOING;
-                    else if (x.to === walletAddress)
+                    else if (x.to === (walletAddress[0] === '0' && walletAddress[1] === 'x') ? walletAddress.substr(2) : walletAddress)
                         type = INCOMING;
                     else
                         type = OTHER;
