@@ -49,6 +49,13 @@ class TransactionMaker {
 function capitalizeFirst(word) {
     return word.charAt(0).toUpperCase() + word.slice(1);
 }
+function shortenHash(hash) {
+    return (hash
+        .slice(0, 8)
+        .concat(['...'])
+        .concat(hash
+        .slice(hash.length - 4)));
+}
 admin.initializeApp(functions.config().firebase);
 // NEW USER
 exports.newUser = functions.auth.user().onCreate((user) => {
@@ -353,14 +360,15 @@ exports.webhookEndpoint = functions.https.onRequest((req, res) => {
                         .then((unusedSnapshot) => {
                         // Redirect with 303 SEE OTHER to the URL of the pushed object in the Firebase console.
                         console.log('success');
+                        // push token
                         return admin.database().ref(`users/${uid}/pushToken`)
                             .once('value', (snapshotOfPushToken) => {
                             if (snapshotOfPushToken.exists()) {
                                 const pushToken = snapshotOfPushToken.val();
                                 const payload = {
                                     notification: {
-                                        title: `${transaction.type ? capitalizeFirst(transaction.type) || 'New' : } Transaction ${walletNickname ? 'for ' + walletNickname : ''}`,
-                                        body: transaction.txHash || '',
+                                        title: `${transaction.type ? capitalizeFirst(transaction.type) : 'New'} transaction ${walletNickname ? 'for ' + walletNickname : ''}`,
+                                        body: `${transaction.value} ETH: ${transaction.txHash ? shortenHash(transaction.txHash) : ''}`,
                                         sound: 'default',
                                     }
                                 };
