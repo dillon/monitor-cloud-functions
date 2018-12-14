@@ -220,7 +220,7 @@ exports.newWallet = functions.database.ref('/users/{uid}/wallets/{walletId}').on
   // curl -sd '{"event": "confirmed-tx", "address": "14ddda446688b73161aa1382f4e4343353af6fc8", "url": "https://webhook.site/ccb360a4-7409-4e82-8820-f61f3b0ac3cd"}' https://api.blockcypher.com/v1/eth/main/hooks?token=117cfc5e59ea48b9a0fadb9a24ba4702
 
   const blockcypherData = JSON.stringify({
-    url: webhookCallbackUrl + `&walletAddress=${walletAddress}&walletId=${walletId}&walletNickname=${walletNickname}&uid=${uid}`,
+    url: webhookCallbackUrl + `&walletAddress=${walletAddress}&walletId=${walletId}&walletNickname=${walletNickname.split(' ').join('_')}&uid=${uid}`,
     'event': 'confirmed-tx',
     'address': (walletAddress[0] === '0' && walletAddress[1] === 'x') ? walletAddress.substr(2) : walletAddress,
     'token': BLOCKCYPHER_API_KEY
@@ -294,8 +294,8 @@ exports.newWallet = functions.database.ref('/users/{uid}/wallets/{walletId}').on
       data.map((x) => {
         let type: string;
         const dateString = new Date(x.timeStamp * 1000).toUTCString()
-        if (x.from === (walletAddress[0] === '0' && walletAddress[1] === 'x') ? walletAddress.substr(2) : walletAddress) type = OUTGOING
-        else if (x.to === (walletAddress[0] === '0' && walletAddress[1] === 'x') ? walletAddress.substr(2) : walletAddress) type = INCOMING
+        if (x.from === ((walletAddress[0] === '0' && walletAddress[1] === 'x') ? walletAddress.substr(2) : walletAddress)) type = OUTGOING
+        else if (x.to === ((walletAddress[0] === '0' && walletAddress[1] === 'x') ? walletAddress.substr(2) : walletAddress)) type = INCOMING
         else type = OTHER
         const transaction = TransactionMaker.create({
           txHash: x.hash,
@@ -343,13 +343,13 @@ exports.newWallet = functions.database.ref('/users/{uid}/wallets/{walletId}').on
 
 
 // WEBHOOK HTTPS ENDPOINT
-exports.webhookEndpoint = functions.https.onRequest((req, res) => {
+exports.webhookEndpoint = functions.https.onRequest(async (req, res) => {
   // Grab the text parameter.
   const secret = req.query.secret
   const uid = req.query.uid
   const walletAddress = req.query.walletAddress
-  const walletNickname = req.query.walletNickname
   const walletId = req.query.walletId
+  const walletNickname = req.query.walletNickname.split('_').join(' ')
   // const transaction = req.body
   if (secret === SECRET) {
     console.log(req.body)
