@@ -83,7 +83,7 @@ exports.deleteUser = functions.auth.user().onDelete((user) => {
                 'Content-Length': Buffer.byteLength(blockcypherData)
             }
         };
-        const deleteWebhookId = new Promise(function (resolve1, reject) {
+        const deleteWebhookId = new Promise(function (resolve, reject) {
             console.log('step 2: in promise');
             const myRequest = http.request(webhookOptions, function (response) {
                 console.log('step 3: in request');
@@ -92,10 +92,10 @@ exports.deleteUser = functions.auth.user().onDelete((user) => {
                     console.log('step 4: in response');
                     const parsedChunk = JSON.parse(chunk);
                     console.log('Webhook Deleted 1');
-                    resolve1(parsedChunk.statusCode);
+                    resolve(parsedChunk.statusCode);
                 });
                 response.on('end', function (data, err) {
-                    resolve1(data);
+                    resolve(data);
                 });
             });
             myRequest.write(blockcypherData);
@@ -162,13 +162,13 @@ exports.newWallet = functions.database.ref('/users/{uid}/wallets/{walletId}').on
             url: `https://api.etherscan.io/api?module=account&action=balance&address=${walletAddress}&tag=latest&apikey=${ETHERSCAN_API_KEY}`,
             json: true
         };
-        const getBalance = new Promise(function (resolve3, reject) {
+        const getBalance = new Promise(function (resolve, reject) {
             request(optionsForEtherscanBalance, function (err, resp) {
                 if (err) {
                     console.log(err);
                     reject({ err: err });
                 }
-                resolve3(parseInt(resp.body.result) / (1000000000000000000));
+                resolve(parseInt(resp.body.result) / (1000000000000000000));
             });
         });
         // etherscan for past transactions
@@ -176,13 +176,13 @@ exports.newWallet = functions.database.ref('/users/{uid}/wallets/{walletId}').on
             url: `http://api.etherscan.io/api?module=account&action=txlist&address=${walletAddress}&startblock=0&endblock=99999999&sort=asc&apikey=${ETHERSCAN_API_KEY}`,
             json: true
         };
-        const getTransactions = new Promise(function (resolve4, reject) {
+        const getTransactions = new Promise(function (resolve, reject) {
             request(optionsForEtherscanTx, function (err, resp) {
                 if (err) {
                     console.log(err);
                     reject({ err: err });
                 }
-                resolve4(standardizeTransactions('etherscan', resp.body.result)); // resolve with standardized transactions
+                resolve(standardizeTransactions('etherscan', resp.body.result)); // resolve with standardized transactions
             });
         });
         // curl -sd '{"event": "confirmed-tx", "address": "14ddda446688b73161aa1382f4e4343353af6fc8", "url": "https://webhook.site/ccb360a4-7409-4e82-8820-f61f3b0ac3cd"}' https://api.blockcypher.com/v1/eth/main/hooks?token=117cfc5e59ea48b9a0fadb9a24ba4702
@@ -203,7 +203,7 @@ exports.newWallet = functions.database.ref('/users/{uid}/wallets/{walletId}').on
                 'Content-Length': blockcypherData.length
             }
         };
-        const getWebhookId = new Promise(function (resolve2, reject) {
+        const getWebhookId = new Promise(function (resolve, reject) {
             const myRequest = http.request(webhookOptions, function (response) {
                 // console.log(res.statusCode)
                 response.setEncoding('utf8');
@@ -211,7 +211,7 @@ exports.newWallet = functions.database.ref('/users/{uid}/wallets/{walletId}').on
                     const parsedChunk = JSON.parse(chunk);
                     const { id } = parsedChunk;
                     console.log('Webhook:', parsedChunk);
-                    resolve2(id);
+                    resolve(id);
                 });
             });
             myRequest.write(blockcypherData);
@@ -327,7 +327,7 @@ exports.webhookEndpoint = functions.https.onRequest((req, res) => {
             blockHash: '0x' + x.block_hash,
             fromAddress: '0x' + x.addresses[0],
             toAddress: '0x' + x.addresses[1],
-            value: x.total,
+            value: parseInt(x.total) / (1000000000000000000),
             gasUsed: x.gas_used,
             gasPrice: x.gas_price,
             timeStamp: moment(x.confirmed).unix(),
@@ -350,8 +350,28 @@ exports.webhookEndpoint = functions.https.onRequest((req, res) => {
                         .then((unusedSnapshot) => {
                         // Redirect with 303 SEE OTHER to the URL of the pushed object in the Firebase console.
                         console.log('success');
-                        res.redirect(303, 'done');
-                        return;
+                        return admin.database().ref(`users/${uid}/pushToken`)
+                            .once('value', (snapshotOfPushToken) => {
+                            if (snapshotOfPushToken.exists()) {
+                                const pushToken = snapshotOfPushToken.val();
+                                const payload = {
+                                    notification: {
+                                        title: `${transaction.type || 'New'} Transaction ${walletNickname ? 'for ' + walletNickname : ''}`,
+                                        body: transaction.txHash || '',
+                                        sound: 'default',
+                                    }
+                                };
+                                return admin.messaging().sendToDevice(pushToken, payload).then(() => {
+                                    res.redirect(303, 'done');
+                                    return;
+                                });
+                            }
+                            else {
+                                res.redirect(303, 'done');
+                                return;
+                            }
+                            ;
+                        });
                     })
                         .catch(err => {
                         console.log(err.message || 'error caught 1');

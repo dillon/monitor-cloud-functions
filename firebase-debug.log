@@ -1,0 +1,13 @@
+[debug] [2018-12-14T05:51:07.933Z] ----------------------------------------------------------------------
+[debug] [2018-12-14T05:51:07.936Z] Command:       /usr/local/Cellar/node/10.9.0/bin/node /usr/local/bin/firebase deploy
+[debug] [2018-12-14T05:51:07.936Z] CLI Version:   5.0.1
+[debug] [2018-12-14T05:51:07.936Z] Platform:      darwin
+[debug] [2018-12-14T05:51:07.936Z] Node Version:  v10.9.0
+[debug] [2018-12-14T05:51:07.950Z] Time:          Fri Dec 14 2018 00:51:07 GMT-0500 (Eastern Standard Time)
+[debug] [2018-12-14T05:51:07.950Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2018-12-14T05:51:07.965Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2018-12-14T05:51:07.966Z] > authorizing via signed-in user
+[debug] [2018-12-14T05:51:07.966Z] [iam] checking project monitor-3f707 for permissions ["cloudfunctions.functions.create","cloudfunctions.functions.delete","cloudfunctions.functions.get","cloudfunctions.functions.list","cloudfunctions.functions.update","cloudfunctions.operations.get","firebase.projects.get"]
+[debug] [2018-12-14T05:51:07.968Z] >>> HTTP REQUEST POST https://cloudresourcemanager.googleapis.com/v1/projects/monitor-3f707:testIamPermissions  
+
