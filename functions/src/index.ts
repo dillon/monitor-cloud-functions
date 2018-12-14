@@ -382,7 +382,7 @@ exports.webhookEndpoint = functions.https.onRequest((req, res) => {
                       const pushToken: string = snapshotOfPushToken.val()
                       const payload = {
                         notification: {
-                          title: `${transaction.type ? capitalizeFirst(transaction.type) || 'New'} Transaction ${walletNickname ? 'for ' + walletNickname : ''}`,
+                          title: `${transaction.type ? capitalizeFirst(transaction.type) : 'New'} Transaction ${walletNickname ? 'for ' + walletNickname : ''}`,
                           body: transaction.txHash || '',
                           sound: 'default',
                         }

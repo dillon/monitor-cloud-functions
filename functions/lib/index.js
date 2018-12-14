@@ -46,6 +46,9 @@ class TransactionMaker {
         return new Transaction(event.txHash, event.dateString, event.timeStamp, event.type, event.value, event.fromAddress, event.toAddress, event.gasUsed, event.gasPrice, event.blockNumber, event.blockHash, event.walletAddress, event.walletNickname);
     }
 }
+function capitalizeFirst(word) {
+    return word.charAt(0).toUpperCase() + word.slice(1);
+}
 admin.initializeApp(functions.config().firebase);
 // NEW USER
 exports.newUser = functions.auth.user().onCreate((user) => {
@@ -356,7 +359,7 @@ exports.webhookEndpoint = functions.https.onRequest((req, res) => {
                                 const pushToken = snapshotOfPushToken.val();
                                 const payload = {
                                     notification: {
-                                        title: `${transaction.type || 'New'} Transaction ${walletNickname ? 'for ' + walletNickname : ''}`,
+                                        title: `${transaction.type ? capitalizeFirst(transaction.type) || 'New' : } Transaction ${walletNickname ? 'for ' + walletNickname : ''}`,
                                         body: transaction.txHash || '',
                                         sound: 'default',
                                     }
