@@ -1,5 +1,6 @@
 import * as functions from 'firebase-functions';
 import { database } from 'firebase-admin';
+import { resolve } from 'dns';
 const admin = require('firebase-admin');
 const request = require('request');
 const http = require('http');
@@ -88,7 +89,7 @@ exports.deleteUser = functions.auth.user().onDelete((user) => {
         'Content-Length': Buffer.byteLength(blockcypherData)
       }
     };
-    const deleteWebhookId = new Promise(function (resolve, reject) {
+    const deleteWebhookId = new Promise(function (resolve1, reject) {
       console.log('step 2: in promise');
       const myRequest = http.request(webhookOptions, function (response) {
         console.log('step 3: in request');
@@ -97,10 +98,10 @@ exports.deleteUser = functions.auth.user().onDelete((user) => {
           console.log('step 4: in response');
           const parsedChunk = JSON.parse(chunk)
           console.log('Webhook Deleted 1');
-          resolve(parsedChunk.statusCode)
+          resolve1(parsedChunk.statusCode)
         });
         response.on('end', function (data, err) {
-          resolve(data);
+          resolve1(data);
         });
       })
       myRequest.write(blockcypherData)
@@ -174,13 +175,13 @@ exports.newWallet = functions.database.ref('/users/{uid}/wallets/{walletId}').on
     url: `https://api.etherscan.io/api?module=account&action=balance&address=${walletAddress}&tag=latest&apikey=${ETHERSCAN_API_KEY}`,
     json: true
   }
-  const getBalance = new Promise(function (resolve, reject) {
+  const getBalance = new Promise(function (resolve3, reject) {
     request(optionsForEtherscanBalance, function (err, resp) {
       if (err) {
         console.log(err);
         reject({ err: err });
       }
-      resolve(parseInt(resp.body.result) / (1000000000000000000))
+      resolve3(parseInt(resp.body.result) / (1000000000000000000))
     })
   })
 
@@ -189,13 +190,13 @@ exports.newWallet = functions.database.ref('/users/{uid}/wallets/{walletId}').on
     url: `http://api.etherscan.io/api?module=account&action=txlist&address=${walletAddress}&startblock=0&endblock=99999999&sort=asc&apikey=${ETHERSCAN_API_KEY}`,
     json: true
   };
-  const getTransactions = new Promise(function (resolve, reject) {
+  const getTransactions = new Promise(function (resolve4, reject) {
     request(optionsForEtherscanTx, function (err, resp) {
       if (err) {
         console.log(err);
         reject({ err: err });
       }
-      resolve(standardizeTransactions('etherscan', resp.body.result)); // resolve with standardized transactions
+      resolve4(standardizeTransactions('etherscan', resp.body.result)); // resolve with standardized transactions
     });
   });
 
@@ -221,7 +222,7 @@ exports.newWallet = functions.database.ref('/users/{uid}/wallets/{walletId}').on
     }
   };
 
-  const getWebhookId = new Promise(function (resolve, reject) {
+  const getWebhookId = new Promise(function (resolve2, reject) {
     const myRequest = http.request(webhookOptions, function (response) {
       // console.log(res.statusCode)
       response.setEncoding('utf8');
@@ -229,7 +230,7 @@ exports.newWallet = functions.database.ref('/users/{uid}/wallets/{walletId}').on
         const parsedChunk = JSON.parse(chunk)
         const { id } = parsedChunk;
         console.log('Webhook:', parsedChunk);
-        resolve(id)
+        resolve2(id)
       });
     })
     myRequest.write(blockcypherData)
@@ -360,20 +361,32 @@ exports.webhookEndpoint = functions.https.onRequest((req, res) => {
     // return admin.database().ref(`/users/${uid}/wallets/${walletId}/transactions`)
     // return admin.database().ref(`users/${uid}/wallets/`)
     if (admin) {
-      return admin.database().ref(`users/${uid}/wallets/${walletId}`)
-        .child('transactions')
-        .push().set(transaction)
-        .then((snapshot) => {
-          // Redirect with 303 SEE OTHER to the URL of the pushed object in the Firebase console.
-          console.log('success')
-          res.redirect(303, 'done');
-          return
+
+      return admin.database().ref(`users/${uid}/wallets/${walletId}`).child('transactions').orderByChild('txHash')
+        .equalTo(transaction.txHash).once('value', snapshot => {
+          // check if duplicate
+          if (!snapshot.exists()) {
+
+            return admin.database().ref(`users/${uid}/wallets/${walletId}`)
+              .child('transactions')
+              .push().set(transaction)
+              .then((unusedSnapshot) => {
+                // Redirect with 303 SEE OTHER to the URL of the pushed object in the Firebase console.
+                console.log('success')
+                res.redirect(303, 'done');
+                return
+              })
+              .catch(err => {
+                console.log(err.message || 'error caught 1');
+                res.send(err.message)
+                return
+              });
+          }
+          else {
+            res.redirect(303, 'duplicate')
+            return
+          };
         })
-        .catch(err => {
-          console.log(err.message || 'error caught 1');
-          res.send(err.message)
-          return
-        });
     } else {
       res.redirect(303, 'done 2');
       return
