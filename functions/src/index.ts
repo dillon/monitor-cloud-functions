@@ -291,11 +291,12 @@ exports.newWallet = functions.database.ref('/users/{uid}/wallets/{walletId}').on
     const txs = [];
     if (data.length !== 0) {
       console.log(data);
+      console.log(walletAddress)
       data.map((x) => {
         let type: string;
         const dateString = new Date(x.timeStamp * 1000).toUTCString()
-        if (x.from === ((walletAddress[0] === '0' && walletAddress[1] === 'x') ? walletAddress.substr(2) : walletAddress)) type = OUTGOING
-        else if (x.to === ((walletAddress[0] === '0' && walletAddress[1] === 'x') ? walletAddress.substr(2) : walletAddress)) type = INCOMING
+        if (x.from === walletAddress) type = OUTGOING
+        else if (x.to === walletAddress) type = INCOMING
         else type = OTHER
         const transaction = TransactionMaker.create({
           txHash: x.hash,
