@@ -1,9 +1,7 @@
 # monitor-cloud-functions
 Firebase Cloud Functions for Ethereum transaction "Monitor" app
 
-> Repository for the mobile app built with react-native can be found here:
-
-> [github.com/dillon/monitor](https://github.com/dillon/monitor).
+> Repository for the mobile app built with react-native can be found here: <br> [github.com/dillon/monitor](https://github.com/dillon/monitor).
 
 1. `newUser` creates a corresponding database entry for each new user sign up.
 2. `deleteUser` deletes all corresponding database info and deletes all associated webhooks users who delete their firebase auth account
