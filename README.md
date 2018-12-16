@@ -1,5 +1,6 @@
 # monitor-cloud-functions
 Firebase Cloud Functions for Ethereum transaction "Monitor" app
+
 Repository for the mobile app built with react-native can be found here: [github.com/dillon/monitor](https://github.com/dillon/monitor).
 
 1. `newUser` creates a corresponding database entry for each new user sign up.
